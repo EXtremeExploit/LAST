@@ -1,10 +1,11 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <signal.h>
 
 #include <lua.h>
+#include <stdio.h>
 
 #include "process.h"
 #include "auto-splitter.h"
@@ -42,11 +43,25 @@ uintptr_t find_base_address(const char* module)
 
     FILE *f = fopen(path, "r");
 
+#ifdef __USE_GNU
+
+    printf("aaaaaa")
+#endif
+
     if (f) {
+        struct timespec clock_start_find;
+        clock_gettime(CLOCK_MONOTONIC, &clock_start_find);
         char current_line[1024];
-        while (fgets(current_line, sizeof(current_line), f) != NULL) {
+        int fgetsCounter = 0;
+        while (fgets_unlocked(current_line, sizeof(current_line), f) != NULL) {
+            fgetsCounter++;
             if (strstr(current_line, module_to_grep) == NULL)
                 continue;
+            printf("fgetsCounter: %d ", fgetsCounter);
+            struct timespec clock_end_find;
+            clock_gettime(CLOCK_MONOTONIC, &clock_end_find);
+            long long find_duration = (clock_end_find.tv_sec - clock_start_find.tv_sec) * 1000000 + (clock_end_find.tv_nsec - clock_start_find.tv_nsec) / 1000;
+            printf("find: %llu\n", find_duration);
             fclose(f);
             size_t dash_pos = strcspn(current_line, "-");
 
